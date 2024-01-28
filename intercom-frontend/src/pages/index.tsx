@@ -7,7 +7,7 @@ export default function Home() {
 
 	return (
 		<div>
-			<button onClick={() => {console.log('printing socket'); socket.emit("message", "hi gv")} }>Socket.io</button>
+			<button onClick={() => {console.log('printing socket'); socket.emit("new_conversation", {message:"hi gv"})} }>Socket.io</button>
 		</div>
 	);
 }

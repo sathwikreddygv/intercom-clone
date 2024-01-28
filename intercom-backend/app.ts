@@ -1,10 +1,22 @@
 import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import cors from 'cors';
+var crypto = require('crypto');
+var format = require('biguint-format');
 const { createServer } = require('node:http');
 const { Server } = require('socket.io');
-
+const { PrismaClient } = require('./prisma/generated/client');
+const prisma = new PrismaClient();
 dotenv.config();
+
+interface NewConversation {
+	message: string;
+}
+
+interface NewMessage {
+	conversation_id: string;
+	message: string;
+}
 
 const app: Express = express();
 
@@ -19,16 +31,57 @@ const io = new Server(httpServer, {
 });
 app.use(cors());
 
+const get_id = (): string => {
+	let id = crypto.randomBytes(8);
+
+	return format(id, 'hex');
+}
+
 app.get("/", (req: Request, res: Response) => {
 	res.send("Express + TypeScript Server");
 });
 
 io.on('connection', (socket: any) => {
 	console.log('a user connected');
-	socket.on('message', async(message: string) => {
-		try{
-			console.log(message);
-		}catch(err){
+
+	socket.on('new_conversation', async (data: NewConversation) => {
+		try {
+			console.log('created conversation', data)
+			let conversation_id = get_id()
+			// await prisma.Conversation.create({
+			// 	data:{
+			// 		id: conversation_id
+			// 	}
+			// })
+			await prisma.Message.create({
+				data:{
+					id: get_id(),
+					message: data.message,
+					conversation:{
+						create : {id: conversation_id}
+					}
+				}
+			})
+			
+			console.log(data);
+		} catch (err) {
+			console.log(err)
+		}
+	});
+
+	socket.on('message', async (data: NewMessage) => {
+		try {
+			await prisma.Message.create({
+				data:{
+					id: get_id(),
+					message: data.message,
+					conversation:{
+						connect : {id: data.conversation_id}
+					}
+				}
+			})
+			console.log(data);
+		} catch (err) {
 
 		}
 	});
