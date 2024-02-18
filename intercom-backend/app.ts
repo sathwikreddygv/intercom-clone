@@ -7,6 +7,7 @@ const { createServer } = require('node:http');
 const { Server } = require('socket.io');
 const { PrismaClient } = require('./prisma/generated/client');
 const prisma = new PrismaClient();
+const bodyParser = require('body-parser');
 dotenv.config();
 
 interface NewConversation {
@@ -19,7 +20,7 @@ interface NewMessage {
 }
 
 const app: Express = express();
-
+app.use(bodyParser.json());
 const httpServer = createServer(app);
 // httpServer.use(cors());
 
@@ -30,6 +31,8 @@ const io = new Server(httpServer, {
 	}
 });
 app.use(cors());
+
+const message = require('./routes/message')
 
 const get_id = (): string => {
 	let id = crypto.randomBytes(8);
@@ -62,8 +65,8 @@ io.on('connection', (socket: any) => {
 					}
 				}
 			})
-			
 			console.log(data);
+			socket.send({conversation_id: conversation_id})
 		} catch (err) {
 			console.log(err)
 		}
@@ -86,6 +89,8 @@ io.on('connection', (socket: any) => {
 		}
 	});
 });
+
+app.use('/message', message)
 
 // app.listen(port, () => {
 // 	console.log(`[server]: Server is running at http://localhost:${port}`);
